@@ -12,7 +12,7 @@ st.sidebar.title("Upload & Filters")
 uploaded_file = st.sidebar.file_uploader("Upload Excel File", type=["xlsx"])
 
 if uploaded_file:
-    df = pd.read_excel(uploaded_file)
+    df = pd.read_excel(uploaded_file, engine="openpyxl")
     df = df[['Franchisee', 'Sub Client', 'test name', 'Lab Partner']].dropna(subset=['Franchisee', 'test name'])
 
     # Sidebar filters
@@ -26,17 +26,19 @@ if uploaded_file:
         filtered_df = df[df['test name'].isin(selected_tests) & df['Franchisee'].isin(selected_franchisees)]
 
         # --- CHARTS ---
+
         st.header("Franchisee Sample Volume")
         volume_by_franchisee = filtered_df['Franchisee'].value_counts().reset_index()
         volume_by_franchisee.columns = ['Franchisee', 'Sample Volume']
+        volume_by_franchisee = volume_by_franchisee.sort_values('Sample Volume', ascending=False)
         st.bar_chart(volume_by_franchisee.set_index('Franchisee'))
 
         st.header("Most Common Tests")
-        test_counts = filtered_df['test name'].value_counts().head(15)
+        test_counts = filtered_df['test name'].value_counts().head(15).sort_values(ascending=False)
         st.bar_chart(test_counts)
 
         st.header("Lab Partner Usage")
-        lab_counts = filtered_df['Lab Partner'].value_counts()
+        lab_counts = filtered_df['Lab Partner'].value_counts().sort_values(ascending=False)
         st.bar_chart(lab_counts)
 
         st.header("Sub Account vs Franchisee Match (Selected Tests)")
@@ -59,7 +61,7 @@ if openai_key and uploaded_file:
     if user_question:
         try:
             openai.api_key = openai_key
-            sample_data = df.head(200).to_csv(index=False)  # for context
+            sample_data = df.head(200).to_csv(index=False)  # Provide sample to GPT
             response = openai.ChatCompletion.create(
                 model="gpt-4",
                 messages=[
