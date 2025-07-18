@@ -15,7 +15,11 @@ if uploaded_file:
     df = pd.read_excel(uploaded_file, engine="openpyxl")
     df = df[['Franchisee', 'Sub Client', 'test name', 'Lab Partner']].dropna(subset=['Franchisee', 'test name'])
 
-    # Sidebar filters with full labels shown
+    # --- Top 10 Franchisees for Default Selection ---
+    top_10_franchisees = (
+        df['Franchisee'].value_counts().head(10).index.tolist()
+    )
+
     unique_tests = sorted(df['test name'].dropna().unique())
     unique_franchisees = sorted(df['Franchisee'].dropna().unique())
 
@@ -29,7 +33,7 @@ if uploaded_file:
     selected_franchisees = st.sidebar.multiselect(
         "Filter by Franchisee(s)",
         options=unique_franchisees,
-        default=unique_franchisees,
+        default=top_10_franchisees,
         format_func=lambda x: x
     )
 
@@ -45,36 +49,36 @@ if uploaded_file:
         volume_by_franchisee.columns = ['Franchisee', 'Sample Volume']
         volume_by_franchisee = volume_by_franchisee.sort_values('Sample Volume', ascending=False)
 
-        fig1, ax1 = plt.subplots(figsize=(10, 6))
-        ax1.barh(volume_by_franchisee['Franchisee'], volume_by_franchisee['Sample Volume'])
+        fig1, ax1 = plt.subplots(figsize=(10, 0.4 * len(volume_by_franchisee)))
+        ax1.barh(volume_by_franchisee['Franchisee'], volume_by_franchisee['Sample Volume'], color='skyblue')
         ax1.set_xlabel("Sample Volume")
-        ax1.set_ylabel("Franchisee")
         ax1.set_title("Franchisee Sample Volume")
         ax1.invert_yaxis()
+        ax1.tick_params(axis='y', labelsize=10)
         st.pyplot(fig1)
 
         # --- Most Common Tests ---
         st.header("Most Common Tests")
         test_counts = filtered_df['test name'].value_counts().head(15).sort_values(ascending=True)
 
-        fig2, ax2 = plt.subplots(figsize=(10, 6))
-        ax2.barh(test_counts.index, test_counts.values)
+        fig2, ax2 = plt.subplots(figsize=(10, 0.4 * len(test_counts)))
+        ax2.barh(test_counts.index, test_counts.values, color='orange')
         ax2.set_xlabel("Frequency")
-        ax2.set_ylabel("Test Name")
         ax2.set_title("Top 15 Most Common Tests")
         ax2.invert_yaxis()
+        ax2.tick_params(axis='y', labelsize=10)
         st.pyplot(fig2)
 
         # --- Lab Partner Usage ---
         st.header("Lab Partner Usage")
         lab_counts = filtered_df['Lab Partner'].value_counts().sort_values(ascending=True)
 
-        fig3, ax3 = plt.subplots(figsize=(10, 6))
-        ax3.barh(lab_counts.index, lab_counts.values)
+        fig3, ax3 = plt.subplots(figsize=(10, 0.4 * len(lab_counts)))
+        ax3.barh(lab_counts.index, lab_counts.values, color='green')
         ax3.set_xlabel("Sample Volume")
-        ax3.set_ylabel("Lab Partner")
         ax3.set_title("Lab Partner Usage")
         ax3.invert_yaxis()
+        ax3.tick_params(axis='y', labelsize=10)
         st.pyplot(fig3)
 
         # --- Sub Account vs Franchisee Analysis ---
