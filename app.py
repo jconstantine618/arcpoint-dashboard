@@ -9,11 +9,12 @@ st.set_page_config(page_title="Franchise Test Dashboard", layout="wide")
 # --- CUSTOM STYLING ---
 st.markdown("""
     <style>
-    .stCheckbox > label {
-        font-size: 0.9rem;
-        word-wrap: break-word;
-        white-space: normal !important;
-        display: block;
+    .stMultiSelect > div {
+        max-width: 100% !important;
+    }
+    .stMultiSelect label, .stMultiSelect span {
+        white-space: normal;
+        word-break: break-word;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -26,32 +27,30 @@ if uploaded_file:
     df = pd.read_excel(uploaded_file, engine="openpyxl")
     df = df[['Franchisee', 'Sub Client', 'test name', 'Lab Partner']].dropna(subset=['Franchisee', 'test name'])
 
-    # --- Get unique values and top 10 franchisees ---
+    # --- Top 10 Franchisees by Default ---
     unique_tests = sorted(df['test name'].dropna().unique())
     unique_franchisees = sorted(df['Franchisee'].dropna().unique())
     top_10_franchisees = df['Franchisee'].value_counts().head(10).index.tolist()
 
-    # --- Test Type Filter ---
+    # --- Test Filter ---
     st.sidebar.markdown("### Filter by Test Type")
-    selected_tests_set = set(unique_tests)  # default all selected
-    test_selection = {}
-    for test in unique_tests:
-        test_selection[test] = st.sidebar.checkbox(
-            f"🔵 {test}",
-            value=True
-        )
-    selected_tests = [k for k, v in test_selection.items() if v]
+    selected_tests = st.sidebar.multiselect(
+        "Select Test Types",
+        options=unique_tests,
+        default=unique_tests,
+        format_func=lambda x: x
+    )
+    st.sidebar.caption(f"✅ {len(selected_tests)} test types selected")
 
     # --- Franchisee Filter ---
     st.sidebar.markdown("### Filter by Franchisee(s)")
-    franchisee_selection = {}
-    for name in unique_franchisees:
-        preselect = name in top_10_franchisees
-        franchisee_selection[name] = st.sidebar.checkbox(
-            f"{'🔵' if preselect else '🔴'} {name}",
-            value=preselect
-        )
-    selected_franchisees = [k for k, v in franchisee_selection.items() if v]
+    selected_franchisees = st.sidebar.multiselect(
+        "Select Franchisee(s)",
+        options=unique_franchisees,
+        default=top_10_franchisees,
+        format_func=lambda x: x
+    )
+    st.sidebar.caption(f"✅ {len(selected_franchisees)} franchisees selected")
 
     if st.sidebar.button("Run Report"):
 
