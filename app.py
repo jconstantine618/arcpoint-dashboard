@@ -6,38 +6,55 @@ import openai
 # --- CONFIG ---
 st.set_page_config(page_title="Franchise Test Dashboard", layout="wide")
 
+# --- CUSTOM STYLING ---
+st.markdown("""
+    <style>
+    .stCheckbox > label {
+        font-size: 0.9rem;
+        word-wrap: break-word;
+        white-space: normal !important;
+        display: block;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # --- SIDEBAR ---
 st.sidebar.title("Upload & Filters")
-
 uploaded_file = st.sidebar.file_uploader("Upload Excel File", type=["xlsx"])
 
 if uploaded_file:
     df = pd.read_excel(uploaded_file, engine="openpyxl")
     df = df[['Franchisee', 'Sub Client', 'test name', 'Lab Partner']].dropna(subset=['Franchisee', 'test name'])
 
-    # --- Top 10 Franchisees for Default Selection ---
-    top_10_franchisees = (
-        df['Franchisee'].value_counts().head(10).index.tolist()
-    )
-
+    # --- Get unique values and top 10 franchisees ---
     unique_tests = sorted(df['test name'].dropna().unique())
     unique_franchisees = sorted(df['Franchisee'].dropna().unique())
+    top_10_franchisees = df['Franchisee'].value_counts().head(10).index.tolist()
 
-    selected_tests = st.sidebar.multiselect(
-        "Filter by Test Type",
-        options=unique_tests,
-        default=unique_tests,
-        format_func=lambda x: x
-    )
+    # --- Test Type Filter ---
+    st.sidebar.markdown("### Filter by Test Type")
+    selected_tests_set = set(unique_tests)  # default all selected
+    test_selection = {}
+    for test in unique_tests:
+        test_selection[test] = st.sidebar.checkbox(
+            f"🔵 {test}",
+            value=True
+        )
+    selected_tests = [k for k, v in test_selection.items() if v]
 
-    selected_franchisees = st.sidebar.multiselect(
-        "Filter by Franchisee(s)",
-        options=unique_franchisees,
-        default=top_10_franchisees,
-        format_func=lambda x: x
-    )
+    # --- Franchisee Filter ---
+    st.sidebar.markdown("### Filter by Franchisee(s)")
+    franchisee_selection = {}
+    for name in unique_franchisees:
+        preselect = name in top_10_franchisees
+        franchisee_selection[name] = st.sidebar.checkbox(
+            f"{'🔵' if preselect else '🔴'} {name}",
+            value=preselect
+        )
+    selected_franchisees = [k for k, v in franchisee_selection.items() if v]
 
     if st.sidebar.button("Run Report"):
+
         filtered_df = df[
             df['test name'].isin(selected_tests) & 
             df['Franchisee'].isin(selected_franchisees)
