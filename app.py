@@ -2,22 +2,10 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import openai
+from streamlit_tags import st_tags
 
 # --- CONFIG ---
 st.set_page_config(page_title="Franchise Test Dashboard", layout="wide")
-
-# --- CUSTOM STYLING ---
-st.markdown("""
-    <style>
-    .stMultiSelect > div {
-        max-width: 100% !important;
-    }
-    .stMultiSelect label, .stMultiSelect span {
-        white-space: normal;
-        word-break: break-word;
-    }
-    </style>
-""", unsafe_allow_html=True)
 
 # --- SIDEBAR ---
 st.sidebar.title("Upload & Filters")
@@ -27,35 +15,37 @@ if uploaded_file:
     df = pd.read_excel(uploaded_file, engine="openpyxl")
     df = df[['Franchisee', 'Sub Client', 'test name', 'Lab Partner']].dropna(subset=['Franchisee', 'test name'])
 
-    # --- Top 10 Franchisees by Default ---
+    # --- Unique lists & defaults ---
     unique_tests = sorted(df['test name'].dropna().unique())
     unique_franchisees = sorted(df['Franchisee'].dropna().unique())
+
     top_10_franchisees = df['Franchisee'].value_counts().head(10).index.tolist()
+    top_10_tests = df['test name'].value_counts().head(10).index.tolist()
 
-    # --- Test Filter ---
-    st.sidebar.markdown("### Filter by Test Type")
-    selected_tests = st.sidebar.multiselect(
-        "Select Test Types",
-        options=unique_tests,
-        default=unique_tests,
-        format_func=lambda x: x
+    st.sidebar.markdown("### 💉 Filter by Test Type")
+    selected_tests = st_tags(
+        label='Select Test Types',
+        text='Type or pick from suggestions',
+        value=top_10_tests,
+        suggestions=unique_tests,
+        maxtags=0,
+        key='test_tags'
     )
-    st.sidebar.caption(f"✅ {len(selected_tests)} test types selected")
 
-    # --- Franchisee Filter ---
-    st.sidebar.markdown("### Filter by Franchisee(s)")
-    selected_franchisees = st.sidebar.multiselect(
-        "Select Franchisee(s)",
-        options=unique_franchisees,
-        default=top_10_franchisees,
-        format_func=lambda x: x
+    st.sidebar.markdown("### 🏥 Filter by Franchisee(s)")
+    selected_franchisees = st_tags(
+        label='Select Franchisees',
+        text='Type or pick from suggestions',
+        value=top_10_franchisees,
+        suggestions=unique_franchisees,
+        maxtags=0,
+        key='franchisee_tags'
     )
-    st.sidebar.caption(f"✅ {len(selected_franchisees)} franchisees selected")
 
     if st.sidebar.button("Run Report"):
 
         filtered_df = df[
-            df['test name'].isin(selected_tests) & 
+            df['test name'].isin(selected_tests) &
             df['Franchisee'].isin(selected_franchisees)
         ]
 
