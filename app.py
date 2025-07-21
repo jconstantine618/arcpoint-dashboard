@@ -232,7 +232,8 @@ st.sidebar.title("💬 Ask the Data")
 st.sidebar.markdown("Chat with your uploaded data using GPT!") # Updated text to reflect no filtering
 
 # MODIFICATION: Retrieve OpenAI API key from Streamlit secrets
-openai_api_key = st.secrets["openai_api_key"] if "openai_api_key" in st.secrets else None
+# Corrected key name to match the secret configuration (OPENAI_API_KEY)
+openai_api_key = st.secrets["OPENAI_API_KEY"] if "OPENAI_API_KEY" in st.secrets else None
 
 if openai_api_key: # Check if key is available from secrets
     if uploaded_file and 'filtered_df' in locals(): # filtered_df now holds the full df
