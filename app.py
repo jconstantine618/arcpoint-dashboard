@@ -297,4 +297,4 @@ if openai_api_key: # Check if key is available from secrets
         st.sidebar.info("Upload a file to enable the chatbot.") 
 else:
     st.sidebar.warning("OpenAI API Key not found in Streamlit secrets. Please add it to your `.streamlit/secrets.toml` file.")
-�
+
