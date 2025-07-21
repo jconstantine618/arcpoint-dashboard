@@ -83,6 +83,7 @@ if uploaded_file:
 
     volume_by_franchisee = volume_by_franchisee.sort_values('Sample Volume', ascending=True) # Sort ascending for Plotly bar chart
     
+    # Create the base bar chart for total sample volume
     fig1 = px.bar(
         volume_by_franchisee, 
         y='Franchisee_Label', # Use the new combined label for the Y-axis
@@ -90,18 +91,41 @@ if uploaded_file:
         orientation='h',
         title='Franchisee Sample Volume and Sub-Account Usage', # Updated chart title
         labels={'Franchisee_Label': 'Franchisee (Sub-Account %)', 'Sample Volume': 'Total Sample Volume'},
-        color_discrete_sequence=px.colors.qualitative.Pastel,
-        # Add custom data for tooltip (include original Franchisee name if needed, and the percentage)
-        custom_data=['Franchisee', 'Top Test Name', 'Top Test Volume', '% Sub Account Used']
+        color_discrete_sequence=[px.colors.qualitative.Pastel[0]] # Base color for total volume
     )
-    fig1.update_layout(height=max(400, 30 * len(volume_by_franchisee)), showlegend=False) # Adjust height dynamically
+    
+    # Add a second trace for the 'Top Test Volume' as an overlay
+    fig1.add_trace(
+        px.bar(
+            volume_by_franchisee,
+            y='Franchisee_Label',
+            x='Top Test Volume',
+            orientation='h',
+            color_discrete_sequence=[px.colors.qualitative.Bold[0]] # Different color for top test volume
+        ).data[0] # Extract the data from the temporary bar chart
+    )
+
+    fig1.update_layout(
+        height=max(400, 30 * len(volume_by_franchisee)), 
+        showlegend=False, # We'll manage legend manually if needed, for simplicity keep off
+        barmode='overlay' # Overlay the bars
+    )
     
     # Enhance tooltip to show top test information and sub-account percentage
     fig1.update_traces(hovertemplate="<b>Franchisee</b>: %{customdata[0]}<br>" + # Use original Franchisee from customdata
                                      "<b>Total Sample Volume</b>: %{x}<br>" +
                                      "<b>Top Test</b>: %{customdata[1]}<br>" +
                                      "<b>Top Test Volume</b>: %{customdata[2]}<br>" +
-                                     "<b>% Sub Account Used</b>: %{customdata[3]:.2f}%<extra></extra>")
+                                     "<b>% Sub Account Used</b>: %{customdata[3]:.2f}%<extra></extra>",
+                       selector=dict(name='Sample Volume')) # Apply to the first trace (total volume)
+
+    # Add custom data for the second trace (Top Test Volume) for its tooltip
+    fig1.data[1].customdata = volume_by_franchisee[['Franchisee', 'Top Test Name', 'Top Test Volume', '% Sub Account Used']].values
+    fig1.data[1].hovertemplate = "<b>Franchisee</b>: %{customdata[0]}<br>" + \
+                                  "<b>Top Test Volume</b>: %{x}<br>" + \
+                                  "<b>Top Test Name</b>: %{customdata[1]}<extra></extra>"
+
+
     st.plotly_chart(fig1, use_container_width=True)
 
     # --- Most Common Tests (Top N configurable) ---
