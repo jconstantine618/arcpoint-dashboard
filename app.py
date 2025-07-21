@@ -35,15 +35,21 @@ if uploaded_file:
     unique_tests = sorted(df['test name'].dropna().unique())
     unique_franchisees = sorted(df['Franchisee'].dropna().unique())
 
-    # Get top N based on sample volume
-    top_10_franchisees = df['Franchisee'].value_counts().head(10).index.tolist()
-    top_10_tests = df['test name'].value_counts().head(10).index.tolist()
+    # Get top N based on sample volume (original logic)
+    # top_10_franchisees = df['Franchisee'].value_counts().head(10).index.tolist()
+    # top_10_tests = df['test name'].value_counts().head(10).index.tolist()
+
+    # MODIFICATION: Default to all unique tests and franchisees being selected
+    default_selected_tests = unique_tests
+    default_selected_franchisees = unique_franchisees
+
 
     st.sidebar.markdown("### 💉 Filter by Test Type")
     selected_tests = st_tags(
         label='Select Test Types',
         text='Type or pick from suggestions',
-        value=top_10_tests,
+        # MODIFICATION: Use all unique tests as default value
+        value=default_selected_tests, 
         suggestions=unique_tests,
         maxtags=0,
         key='test_tags'
@@ -53,7 +59,8 @@ if uploaded_file:
     selected_franchisees = st_tags(
         label='Select Franchisees',
         text='Type or pick from suggestions',
-        value=top_10_franchisees,
+        # MODIFICATION: Use all unique franchisees as default value
+        value=default_selected_franchisees, 
         suggestions=unique_franchisees,
         maxtags=0,
         key='franchisee_tags'
