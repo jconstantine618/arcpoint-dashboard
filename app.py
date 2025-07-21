@@ -2,13 +2,14 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import openai
-from streamlit_tags import st_tags # This import is no longer strictly needed if st_tags is removed, but keeping for now.
+# Removed streamlit_tags import as it's no longer used with filters removed.
+# from streamlit_tags import st_tags 
 
 # --- CONFIG ---
 st.set_page_config(page_title="Franchise Test Dashboard", layout="wide", initial_sidebar_state="expanded")
 
 # --- SIDEBAR ---
-st.sidebar.title("Upload & Filters 📊")
+st.sidebar.title("Upload & Data Display 📊") # Updated title
 uploaded_file = st.sidebar.file_uploader("Upload Excel File", type=["xlsx"], help="Upload your 'june sample volume by location.xlsx' or similar Excel file.")
 
 if uploaded_file:
@@ -31,11 +32,9 @@ if uploaded_file:
         st.error(f"Error loading file: {e}. Please ensure it's a valid Excel file.")
         st.stop()
 
-    # --- MODIFICATION: Removed filter selections and "Run Report" button.
-    #    Charts will now display based on the entire uploaded dataset. ---
+    # --- Display charts based on the entire uploaded dataset. ---
     
     # Assign the full DataFrame to filtered_df for chart generation
-    # This effectively removes filtering for now.
     filtered_df = df.copy() 
 
     # --- Dashboard Content ---
@@ -141,7 +140,7 @@ if uploaded_file:
         st.info("No data to display for Franchisee Sample Volume by Test Type.")
 
     # --- NEW: Franchisee Sample Volume by Sub Account Status and Test Type ---
-    st.header("Franchisee Performance: Sub-Accounts & Test Types �")
+    st.header("Franchisee Performance: Sub-Accounts & Test Types 🎯")
     st.markdown("Analyze how sample volume is distributed across sub-account usage and specific test types for each franchisee.")
     
     # temp is already created above and contains the 'Sub_Account_Status' column
@@ -211,4 +210,3 @@ if openai_key:
         st.sidebar.info("Upload a file to enable the chatbot.") 
 else:
     st.sidebar.info("Please enter your OpenAI API Key to use the chatbot.")
-�
