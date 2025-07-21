@@ -76,8 +76,8 @@ if uploaded_file:
         
         # Apply sub-account filter if checked
         if filter_sub_accounts:
-            filtered_df['Franchisee_norm'] = filtered_df['Franchisee'].str.lower().str.strip()
-            filtered_df['Sub_Client_norm'] = filtered_df['Sub Client'].str.lower().str.strip()
+            filtered_df['Franchisee_norm'] = filtered_df['Franchisee'].astype(str).str.lower().str.strip()
+            filtered_df['Sub_Client_norm'] = filtered_df['Sub Client'].astype(str).str.lower().str.strip()
             filtered_df = filtered_df[filtered_df['Franchisee_norm'] != filtered_df['Sub_Client_norm']]
             
             if filtered_df.empty:
