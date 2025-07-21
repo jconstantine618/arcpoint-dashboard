@@ -2,8 +2,6 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import openai
-# Removed streamlit_tags import as it's no longer used with filters removed.
-# from streamlit_tags import st_tags 
 
 # --- CONFIG ---
 st.set_page_config(page_title="Franchise Test Dashboard", layout="wide", initial_sidebar_state="expanded")
@@ -13,7 +11,7 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 # --- SIDEBAR ---
-st.sidebar.title("Upload & Data Display 📊") # Updated title
+st.sidebar.title("Upload Data 📊") # Updated title for clarity
 uploaded_file = st.sidebar.file_uploader("Upload Excel File", type=["xlsx"], help="Upload your 'june sample volume by location.xlsx' or similar Excel file.")
 
 if uploaded_file:
@@ -180,7 +178,7 @@ if uploaded_file:
     st.plotly_chart(fig4, use_container_width=True)
 
     # --- Franchisee Sample Volume by Test Type (Top N for all franchisees) ---
-    st.header("Franchisee Sample Volume by Top Test Types �")
+    st.header("Franchisee Sample Volume by Top Test Types 🧪")
     st.markdown("Explore which test types contribute most to each franchisee's volume.")
     
     # Aggregate data for top tests per franchisee
@@ -231,36 +229,34 @@ if uploaded_file:
 else:
     st.info("Please upload an Excel file to get started and analyze your franchisee data.")
 
-# --- CHATBOT SECTION ---
-st.sidebar.title("💬 Ask the Data")
-st.sidebar.markdown("Chat with your uploaded data using GPT!") # Updated text to reflect no filtering
+# --- CHATBOT SECTION (MOVED TO MAIN AREA) ---
+st.header("💬 Ask the Data") # Changed to st.header
+st.markdown("Chat with your uploaded data using GPT!") # Changed to st.markdown
 
 # MODIFICATION: Retrieve OpenAI API key from Streamlit secrets
 openai_api_key = st.secrets["OPENAI_API_KEY"] if "OPENAI_API_KEY" in st.secrets else None
 
 if openai_api_key: # Check if key is available from secrets
     if uploaded_file and 'filtered_df' in locals(): # filtered_df now holds the full df
-        # Display chat messages directly in the sidebar
-        # Using st.sidebar.expander to make the chat history collapsible and manageable
-        with st.sidebar.expander("Chat History", expanded=True):
+        # Display chat messages in the main area
+        # Using st.expander to make the chat history collapsible and manageable
+        with st.expander("Chat History", expanded=True): # Changed to st.expander
             for message in st.session_state.messages:
-                # Manually format messages for sidebar display
-                if message["role"] == "user":
-                    st.markdown(f"**You:** {message['content']}")
-                else:
-                    st.markdown(f"**GPT:** {message['content']}")
+                # Use st.chat_message for better UI in the main area
+                with st.chat_message(message["role"]): # Changed to st.chat_message
+                    st.markdown(message["content"])
 
         # Use a form to ensure all inputs are cleared on submission
-        with st.sidebar.form("chat_form"):
+        with st.form("chat_form"): # Changed to st.form
             user_question = st.text_area("Ask a question about the UPLOADED data:", height=100, key="chat_input_form")
-            submit_button = st.form_submit_button("Ask GPT")
+            submit_button = st.form_submit_button("Ask GPT") # Changed to st.form_submit_button
 
             if submit_button and user_question:
                 # Append user question to messages
                 st.session_state.messages.append({"role": "user", "content": user_question})
                 
                 # Show spinner while thinking
-                with st.sidebar.spinner("Thinking..."):
+                with st.spinner("Thinking..."): # Changed to st.spinner
                     try:
                         openai.api_key = openai_api_key 
                         
@@ -292,9 +288,8 @@ if openai_api_key: # Check if key is available from secrets
                 st.experimental_rerun()
 
     elif not uploaded_file:
-        st.sidebar.info("Please upload a file before asking questions to the chatbot.")
+        st.info("Please upload a file before asking questions to the chatbot.") # Changed to st.info
     else:
-        st.sidebar.info("Upload a file to enable the chatbot.") 
+        st.info("Upload a file to enable the chatbot.") # Changed to st.info
 else:
-    st.sidebar.warning("OpenAI API Key not found in Streamlit secrets. Please add it to your `.streamlit/secrets.toml` file.")
-
+    st.warning("OpenAI API Key not found in Streamlit secrets. Please add it to your `.streamlit/secrets.toml` file.") # Changed to st.warning
