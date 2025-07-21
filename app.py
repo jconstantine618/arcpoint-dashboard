@@ -157,7 +157,7 @@ if uploaded_file:
         orientation='h',
         title='Lab Partner Usage',
         labels={'y': 'Lab Partner', 'x': 'Sample Volume'},
-        color_discrete_sequence=px.colors.qualitative.Light
+        color_discrete_sequence=px.colors.qualitative.Set2 # CORRECTED: Changed 'Light' to 'Set2'
     )
     fig3.update_layout(height=max(400, 30 * len(lab_counts)), showlegend=False)
     st.plotly_chart(fig3, use_container_width=True)
