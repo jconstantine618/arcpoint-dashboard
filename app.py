@@ -240,8 +240,17 @@ openai_api_key = st.secrets["OPENAI_API_KEY"] if "OPENAI_API_KEY" in st.secrets 
 
 if openai_api_key: # Check if key is available from secrets
     if uploaded_file and 'filtered_df' in locals(): # filtered_df now holds the full df
-        # Create a placeholder for chat messages
-        chat_placeholder = st.sidebar.empty()
+        # Create a placeholder for chat messages at the top of the chat section
+        chat_message_area = st.sidebar.container() # Using a container for consistent display
+
+        # Display chat messages in the placeholder
+        with chat_message_area:
+            for message in st.session_state.messages:
+                # Manually format messages for sidebar display
+                if message["role"] == "user":
+                    st.markdown(f"**You:** {message['content']}")
+                else:
+                    st.markdown(f"**GPT:** {message['content']}")
 
         # Use a form to ensure all inputs are cleared on submission
         with st.sidebar.form("chat_form"):
@@ -283,12 +292,6 @@ if openai_api_key: # Check if key is available from secrets
                 
                 # Rerun the app to display the new messages (including the assistant's response)
                 st.experimental_rerun()
-
-        # Display chat messages in the placeholder AFTER potential rerun
-        with chat_placeholder.container():
-            for message in st.session_state.messages:
-                with st.chat_message(message["role"]):
-                    st.markdown(message["content"])
 
     elif not uploaded_file:
         st.sidebar.info("Please upload a file before asking questions to the chatbot.")
