@@ -240,17 +240,12 @@ openai_api_key = st.secrets["OPENAI_API_KEY"] if "OPENAI_API_KEY" in st.secrets 
 
 if openai_api_key: # Check if key is available from secrets
     if uploaded_file and 'filtered_df' in locals(): # filtered_df now holds the full df
-        # Create a placeholder for chat messages at the top of the chat section
-        chat_message_area = st.sidebar.container() # Using a container for consistent display
-
-        # Display chat messages in the placeholder
-        with chat_message_area:
-            for message in st.session_state.messages:
-                # Manually format messages for sidebar display
-                if message["role"] == "user":
-                    st.markdown(f"**You:** {message['content']}")
-                else:
-                    st.markdown(f"**GPT:** {message['content']}")
+        # Display chat messages directly in the sidebar
+        for message in st.session_state.messages:
+            if message["role"] == "user":
+                st.sidebar.markdown(f"**You:** {message['content']}")
+            else:
+                st.sidebar.markdown(f"**GPT:** {message['content']}")
 
         # Use a form to ensure all inputs are cleared on submission
         with st.sidebar.form("chat_form"):
