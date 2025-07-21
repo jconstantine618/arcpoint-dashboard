@@ -284,8 +284,8 @@ if openai_api_key: # Check if key is available from secrets
                     except Exception as e:
                         st.session_state.messages.append({"role": "assistant", "content": f"An unexpected error occurred with the chatbot: {e}"})
                 
-                # Rerun the app to display the new messages (including the assistant's response)
-                st.experimental_rerun()
+                # MODIFICATION: Removed st.experimental_rerun() here.
+                # The form submission itself triggers a rerun, and the chat history will update.
 
     elif not uploaded_file:
         st.info("Please upload a file before asking questions to the chatbot.") # Changed to st.info
