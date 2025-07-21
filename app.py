@@ -180,7 +180,7 @@ if uploaded_file:
     st.plotly_chart(fig4, use_container_width=True)
 
     # --- Franchisee Sample Volume by Test Type (Top N for all franchisees) ---
-    st.header("Franchisee Sample Volume by Top Test Types 🧪")
+    st.header("Franchisee Sample Volume by Top Test Types �")
     st.markdown("Explore which test types contribute most to each franchisee's volume.")
     
     # Aggregate data for top tests per franchisee
@@ -241,11 +241,14 @@ openai_api_key = st.secrets["OPENAI_API_KEY"] if "OPENAI_API_KEY" in st.secrets 
 if openai_api_key: # Check if key is available from secrets
     if uploaded_file and 'filtered_df' in locals(): # filtered_df now holds the full df
         # Display chat messages directly in the sidebar
-        for message in st.session_state.messages:
-            if message["role"] == "user":
-                st.sidebar.markdown(f"**You:** {message['content']}")
-            else:
-                st.sidebar.markdown(f"**GPT:** {message['content']}")
+        # Using st.sidebar.expander to make the chat history collapsible and manageable
+        with st.sidebar.expander("Chat History", expanded=True):
+            for message in st.session_state.messages:
+                # Manually format messages for sidebar display
+                if message["role"] == "user":
+                    st.markdown(f"**You:** {message['content']}")
+                else:
+                    st.markdown(f"**GPT:** {message['content']}")
 
         # Use a form to ensure all inputs are cleared on submission
         with st.sidebar.form("chat_form"):
@@ -294,3 +297,4 @@ if openai_api_key: # Check if key is available from secrets
         st.sidebar.info("Upload a file to enable the chatbot.") 
 else:
     st.sidebar.warning("OpenAI API Key not found in Streamlit secrets. Please add it to your `.streamlit/secrets.toml` file.")
+�
