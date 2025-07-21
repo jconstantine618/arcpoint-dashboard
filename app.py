@@ -41,10 +41,44 @@ if uploaded_file:
     st.title("Franchise Performance Dashboard 📈")
     st.markdown("Dive into your franchisee data to uncover patterns and insights.")
 
-    # --- Franchisee Sample Volume ---
-    st.header("Franchisee Sample Volume")
+    # Prepare temp DataFrame for sub-account analysis
+    temp = filtered_df.copy()
+    temp['Franchisee_norm'] = temp['Franchisee'].astype(str).str.lower().str.strip()
+    temp['Sub_Client_norm'] = temp['Sub Client'].astype(str).str.lower().str.strip()
+    temp['Sub_Account_Status'] = temp.apply(lambda row: 'Sub Account Used' if row['Franchisee_norm'] != row['Sub_Client_norm'] else 'Direct Account', axis=1)
+
+    # --- NEW FEATURE: Percentage of Samples from Sub Accounts with Different Names ---
+    st.header("Sub-Account Usage by Franchisee")
+    st.markdown("Percentage of samples for each franchisee that came from a sub-account with a different name than the franchisee.")
+
+    sub_account_summary = temp.groupby('Franchisee')['Sub_Account_Status'].value_counts(normalize=True).unstack(fill_value=0)
+    if 'Sub Account Used' in sub_account_summary.columns:
+        sub_account_summary['% Sub Account Used'] = (sub_account_summary['Sub Account Used'] * 100).round(2)
+    else:
+        sub_account_summary['% Sub Account Used'] = 0.0 # If no sub accounts used at all
+    
+    # Ensure 'Direct Account' column exists for consistent display, even if all are sub-accounts
+    if 'Direct Account' not in sub_account_summary.columns:
+        sub_account_summary['Direct Account'] = 0.0
+
+    sub_account_display = sub_account_summary[['% Sub Account Used']].sort_values(by='% Sub Account Used', ascending=False)
+    st.dataframe(sub_account_display.style.format({"% Sub Account Used": "{:.2f}%"}), use_container_width=True)
+
+
+    # --- Franchisee Sample Volume (Enhanced with Top Test Info) ---
+    st.header("Franchisee Sample Volume (with Top Test)")
     volume_by_franchisee = filtered_df['Franchisee'].value_counts().reset_index()
     volume_by_franchisee.columns = ['Franchisee', 'Sample Volume']
+
+    # Calculate top test and its volume for each franchisee
+    franchisee_test_volume = filtered_df.groupby(['Franchisee', 'test name']).size().reset_index(name='Test Volume')
+    # Find the test with the max volume for each franchisee
+    idx = franchisee_test_volume.groupby('Franchisee')['Test Volume'].idxmax()
+    top_test_per_franchisee = franchisee_test_volume.loc[idx].set_index('Franchisee')
+    top_test_per_franchisee.columns = ['Top Test Name', 'Top Test Volume'] # Rename columns for clarity
+
+    # Merge top test info into the main volume_by_franchisee DataFrame
+    volume_by_franchisee = volume_by_franchisee.set_index('Franchisee').join(top_test_per_franchisee).reset_index()
     volume_by_franchisee = volume_by_franchisee.sort_values('Sample Volume', ascending=True) # Sort ascending for Plotly bar chart
     
     fig1 = px.bar(
@@ -54,9 +88,17 @@ if uploaded_file:
         orientation='h',
         title='Franchisee Sample Volume',
         labels={'Franchisee': 'Franchisee', 'Sample Volume': 'Total Sample Volume'},
-        color_discrete_sequence=px.colors.qualitative.Pastel
+        color_discrete_sequence=px.colors.qualitative.Pastel,
+        # Add custom data for tooltip
+        custom_data=['Top Test Name', 'Top Test Volume']
     )
     fig1.update_layout(height=max(400, 30 * len(volume_by_franchisee)), showlegend=False) # Adjust height dynamically
+    
+    # Enhance tooltip to show top test information
+    fig1.update_traces(hovertemplate="<b>Franchisee</b>: %{y}<br>" +
+                                     "<b>Total Sample Volume</b>: %{x}<br>" +
+                                     "<b>Top Test</b>: %{customdata[0]}<br>" +
+                                     "<b>Top Test Volume</b>: %{customdata[1]}<extra></extra>")
     st.plotly_chart(fig1, use_container_width=True)
 
     # --- Most Common Tests (Top N configurable) ---
@@ -95,12 +137,7 @@ if uploaded_file:
 
     # --- Sub Account vs Franchisee Analysis ---
     st.header("Sub Account vs Franchisee Relationship")
-    temp = filtered_df.copy()
-    # Ensure columns are treated as strings before lowercasing and stripping
-    temp['Franchisee_norm'] = temp['Franchisee'].astype(str).str.lower().str.strip()
-    temp['Sub_Client_norm'] = temp['Sub Client'].astype(str).str.lower().str.strip()
-    temp['Sub_Account_Status'] = temp.apply(lambda row: 'Sub Account Used' if row['Franchisee_norm'] != row['Sub_Client_norm'] else 'Direct Account', axis=1)
-    
+    # temp DataFrame is already prepared above
     sub_account_counts = temp['Sub_Account_Status'].value_counts()
 
     fig4 = px.pie(
@@ -111,33 +148,32 @@ if uploaded_file:
     )
     st.plotly_chart(fig4, use_container_width=True)
 
-    # --- NEW: Franchisee Sample Volume by Test Type (Top N for selected franchisees) ---
+    # --- Franchisee Sample Volume by Test Type (Top N for all franchisees) ---
     st.header("Franchisee Sample Volume by Top Test Types 🧪")
     st.markdown("Explore which test types contribute most to each franchisee's volume.")
     
     # Aggregate data for top tests per franchisee
-    franchisee_test_volume = filtered_df.groupby(['Franchisee', 'test name']).size().reset_index(name='Sample Volume')
+    # franchisee_test_volume is already calculated above for the top test feature
     
     # Get top N tests for each franchisee (top 5 for each)
-    # This will now apply to all franchisees in the dataset
-    top_tests_per_franchisee = franchisee_test_volume.loc[franchisee_test_volume.groupby('Franchisee')['Sample Volume'].rank(method='first', ascending=False) <= 5] 
+    top_tests_per_franchisee_chart = franchisee_test_volume.loc[franchisee_test_volume.groupby('Franchisee')['Test Volume'].rank(method='first', ascending=False) <= 5] 
 
-    if not top_tests_per_franchisee.empty:
+    if not top_tests_per_franchisee_chart.empty:
         fig5 = px.bar(
-            top_tests_per_franchisee,
-            x='Sample Volume',
+            top_tests_per_franchisee_chart, # Use the new DataFrame for the chart
+            x='Test Volume', # Changed from 'Sample Volume' to 'Test Volume' for consistency
             y='Franchisee',
-            color='test name',
+            color='Top Test Name', # Changed from 'test name' to 'Top Test Name'
             orientation='h',
             title='Franchisee Sample Volume by Test Type (Top 5 per Franchisee)',
-            labels={'Franchisee': 'Franchisee', 'Sample Volume': 'Sample Volume', 'test name': 'Test Type'},
+            labels={'Franchisee': 'Franchisee', 'Test Volume': 'Sample Volume', 'Top Test Name': 'Test Type'},
             height=max(500, 50 * len(filtered_df['Franchisee'].unique())), # Adjust height based on unique franchisees in full data
             color_discrete_sequence=px.colors.qualitative.Bold
         )
         fig5.update_layout(barmode='stack', yaxis={'categoryorder':'total ascending'})
         st.plotly_chart(fig5, use_container_width=True)
     else:
-        st.info("No data to display for Franchisee Sample Volume by Test Type.")
+        st.info("No data to display for Franchisee Sample Volume by Top Test Types.")
 
     # --- NEW: Franchisee Sample Volume by Sub Account Status and Test Type ---
     st.header("Franchisee Performance: Sub-Accounts & Test Types 🎯")
