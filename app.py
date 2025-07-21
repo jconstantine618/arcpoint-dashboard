@@ -8,6 +8,10 @@ import openai
 # --- CONFIG ---
 st.set_page_config(page_title="Franchise Test Dashboard", layout="wide", initial_sidebar_state="expanded")
 
+# Initialize chat history in session state
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
 # --- SIDEBAR ---
 st.sidebar.title("Upload & Data Display 📊") # Updated title
 uploaded_file = st.sidebar.file_uploader("Upload Excel File", type=["xlsx"], help="Upload your 'june sample volume by location.xlsx' or similar Excel file.")
@@ -232,49 +236,56 @@ st.sidebar.title("💬 Ask the Data")
 st.sidebar.markdown("Chat with your uploaded data using GPT!") # Updated text to reflect no filtering
 
 # MODIFICATION: Retrieve OpenAI API key from Streamlit secrets
-# Corrected key name to match the secret configuration (OPENAI_API_KEY)
 openai_api_key = st.secrets["OPENAI_API_KEY"] if "OPENAI_API_KEY" in st.secrets else None
 
 if openai_api_key: # Check if key is available from secrets
     if uploaded_file and 'filtered_df' in locals(): # filtered_df now holds the full df
-        user_question = st.sidebar.text_area("Ask a question about the UPLOADED data:", height=100, key="chat_input") # Added key for consistency
-        
-        # MODIFICATION: Add a submit button for the question
-        submit_button = st.sidebar.button("Ask GPT", key="submit_chat_button")
+        # Use a form to ensure all inputs are cleared on submission
+        with st.sidebar.form("chat_form"):
+            user_question = st.text_area("Ask a question about the UPLOADED data:", height=100, key="chat_input_form")
+            submit_button = st.form_submit_button("Ask GPT")
 
-        if user_question and submit_button: # Trigger only on button click
-            try:
-                openai.api_key = openai_api_key # Use the key from secrets
+            if submit_button and user_question:
+                st.session_state.messages.append({"role": "user", "content": user_question})
                 
-                # Provide a more relevant sample of the FULL data to the chatbot
-                if not filtered_df.empty: # filtered_df is now the full df
-                    chat_data_context = filtered_df.head(500).to_csv(index=False)
+                try:
+                    openai.api_key = openai_api_key 
                     
-                    column_description = "Columns in the data: 'Franchisee' (name of the franchisee), 'Sub Client' (sub-account name, often matches franchisee or is different), 'test name' (type of test), 'Lab Partner' (lab processing the test)."
+                    if not filtered_df.empty:
+                        chat_data_context = filtered_df.head(500).to_csv(index=False)
+                        column_description = "Columns in the data: 'Franchisee' (name of the franchisee), 'Sub Client' (sub-account name, often matches franchisee or is different), 'test name' (type of test), 'Lab Partner' (lab processing the test)."
 
-                    response = openai.ChatCompletion.create(
-                        model="gpt-4", 
-                        messages=[
-                            {"role": "system", "content": f"You are a helpful data analyst assistant specializing in lab testing datasets. Answer questions based on the provided data, which represents lab sample volume by franchisee. Here is a description of the columns: {column_description}"},
-                            {"role": "user", "content": f"Here is a sample of the **currently uploaded** data:\n{chat_data_context}\n\nUser's question: {user_question}"}
-                        ],
-                        temperature=0.3,
-                        max_tokens=1000 
-                    )
-                    st.sidebar.markdown("**Answer from GPT:**")
-                    st.sidebar.success(response.choices[0].message.content.strip())
-                else:
-                    st.sidebar.info("No data available to query the chatbot. Please upload a file first.")
-            except openai.error.AuthenticationError:
-                st.sidebar.error("OpenAI API Key is invalid. Please check your key in Streamlit secrets.") # Updated message
-            except openai.error.APIError as e:
-                st.sidebar.error(f"OpenAI API Error: {e}")
-            except Exception as e:
-                st.sidebar.error(f"An unexpected error occurred with the chatbot: {e}")
+                        response = openai.ChatCompletion.create(
+                            model="gpt-4", 
+                            messages=[
+                                {"role": "system", "content": f"You are a helpful data analyst assistant specializing in lab testing datasets. Answer questions based on the provided data, which represents lab sample volume by franchisee. Here is a description of the columns: {column_description}"},
+                                {"role": "user", "content": f"Here is a sample of the **currently uploaded** data:\n{chat_data_context}\n\nUser's question: {user_question}"}
+                            ],
+                            temperature=0.3,
+                            max_tokens=1000 
+                        )
+                        gpt_response = response.choices[0].message.content.strip()
+                        st.session_state.messages.append({"role": "assistant", "content": gpt_response})
+                    else:
+                        st.session_state.messages.append({"role": "assistant", "content": "No data available to query the chatbot. Please upload a file first."})
+                except openai.error.AuthenticationError:
+                    st.session_state.messages.append({"role": "assistant", "content": "OpenAI API Key is invalid. Please check your key in Streamlit secrets."})
+                except openai.error.APIError as e:
+                    st.session_state.messages.append({"role": "assistant", "content": f"OpenAI API Error: {e}"})
+                except Exception as e:
+                    st.session_state.messages.append({"role": "assistant", "content": f"An unexpected error occurred with the chatbot: {e}"})
+                
+                # Rerun the app to display the new messages
+                st.experimental_rerun()
+
+        # Display chat messages
+        for message in st.session_state.messages:
+            with st.sidebar.chat_message(message["role"]):
+                st.markdown(message["content"])
+
     elif not uploaded_file:
         st.sidebar.info("Please upload a file before asking questions to the chatbot.")
     else:
-        # This else block might not be hit often now, but keeping for robustness
         st.sidebar.info("Upload a file to enable the chatbot.") 
 else:
-    st.sidebar.warning("OpenAI API Key not found in Streamlit secrets. Please add it to your `.streamlit/secrets.toml` file.") # Updated message
+    st.sidebar.warning("OpenAI API Key not found in Streamlit secrets. Please add it to your `.streamlit/secrets.toml` file.")
