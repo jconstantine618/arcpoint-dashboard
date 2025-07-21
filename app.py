@@ -200,7 +200,7 @@ if uploaded_file:
         fig5.update_layout(barmode='stack', yaxis={'categoryorder':'total ascending'})
         st.plotly_chart(fig5, use_container_width=True)
     else:
-        st.info("No data to display for Franchisee Sample Volume by Top Test Types.")
+        st.info("No data to display for Franchisee Performance: Sub-Accounts & Test Types.")
 
     # --- NEW: Franchisee Sample Volume by Sub Account Status and Test Type ---
     st.header("Franchisee Performance: Sub-Accounts & Test Types 🎯")
@@ -231,15 +231,19 @@ else:
 st.sidebar.title("💬 Ask the Data")
 st.sidebar.markdown("Chat with your uploaded data using GPT!") # Updated text to reflect no filtering
 
-openai_key = st.sidebar.text_input("Enter OpenAI API Key", type="password")
+# MODIFICATION: Retrieve OpenAI API key from Streamlit secrets
+openai_api_key = st.secrets["openai_api_key"] if "openai_api_key" in st.secrets else None
 
-if openai_key:
+if openai_api_key: # Check if key is available from secrets
     if uploaded_file and 'filtered_df' in locals(): # filtered_df now holds the full df
-        user_question = st.sidebar.text_area("Ask a question about the UPLOADED data:", height=100) # Updated text
+        user_question = st.sidebar.text_area("Ask a question about the UPLOADED data:", height=100, key="chat_input") # Added key for consistency
+        
+        # MODIFICATION: Add a submit button for the question
+        submit_button = st.sidebar.button("Ask GPT", key="submit_chat_button")
 
-        if user_question:
+        if user_question and submit_button: # Trigger only on button click
             try:
-                openai.api_key = openai_key
+                openai.api_key = openai_api_key # Use the key from secrets
                 
                 # Provide a more relevant sample of the FULL data to the chatbot
                 if not filtered_df.empty: # filtered_df is now the full df
@@ -261,7 +265,7 @@ if openai_key:
                 else:
                     st.sidebar.info("No data available to query the chatbot. Please upload a file first.")
             except openai.error.AuthenticationError:
-                st.sidebar.error("OpenAI API Key is invalid. Please check your key.")
+                st.sidebar.error("OpenAI API Key is invalid. Please check your key in Streamlit secrets.") # Updated message
             except openai.error.APIError as e:
                 st.sidebar.error(f"OpenAI API Error: {e}")
             except Exception as e:
@@ -272,4 +276,4 @@ if openai_key:
         # This else block might not be hit often now, but keeping for robustness
         st.sidebar.info("Upload a file to enable the chatbot.") 
 else:
-    st.sidebar.info("Please enter your OpenAI API Key to use the chatbot.")
+    st.sidebar.warning("OpenAI API Key not found in Streamlit secrets. Please add it to your `.streamlit/secrets.toml` file.") # Updated message
