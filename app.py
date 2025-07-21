@@ -240,48 +240,51 @@ openai_api_key = st.secrets["OPENAI_API_KEY"] if "OPENAI_API_KEY" in st.secrets 
 
 if openai_api_key: # Check if key is available from secrets
     if uploaded_file and 'filtered_df' in locals(): # filtered_df now holds the full df
+        # Display chat messages BEFORE the input form
+        for message in st.session_state.messages:
+            with st.sidebar.chat_message(message["role"]):
+                st.markdown(message["content"])
+
         # Use a form to ensure all inputs are cleared on submission
         with st.sidebar.form("chat_form"):
             user_question = st.text_area("Ask a question about the UPLOADED data:", height=100, key="chat_input_form")
             submit_button = st.form_submit_button("Ask GPT")
 
             if submit_button and user_question:
+                # Append user question to messages
                 st.session_state.messages.append({"role": "user", "content": user_question})
                 
-                try:
-                    openai.api_key = openai_api_key 
-                    
-                    if not filtered_df.empty:
-                        chat_data_context = filtered_df.head(500).to_csv(index=False)
-                        column_description = "Columns in the data: 'Franchisee' (name of the franchisee), 'Sub Client' (sub-account name, often matches franchisee or is different), 'test name' (type of test), 'Lab Partner' (lab processing the test)."
+                # Show spinner while thinking
+                with st.sidebar.spinner("Thinking..."):
+                    try:
+                        openai.api_key = openai_api_key 
+                        
+                        if not filtered_df.empty:
+                            chat_data_context = filtered_df.head(500).to_csv(index=False)
+                            column_description = "Columns in the data: 'Franchisee' (name of the franchisee), 'Sub Client' (sub-account name, often matches franchisee or is different), 'test name' (type of test), 'Lab Partner' (lab processing the test)."
 
-                        response = openai.ChatCompletion.create(
-                            model="gpt-4", 
-                            messages=[
-                                {"role": "system", "content": f"You are a helpful data analyst assistant specializing in lab testing datasets. Answer questions based on the provided data, which represents lab sample volume by franchisee. Here is a description of the columns: {column_description}"},
-                                {"role": "user", "content": f"Here is a sample of the **currently uploaded** data:\n{chat_data_context}\n\nUser's question: {user_question}"}
-                            ],
-                            temperature=0.3,
-                            max_tokens=1000 
-                        )
-                        gpt_response = response.choices[0].message.content.strip()
-                        st.session_state.messages.append({"role": "assistant", "content": gpt_response})
-                    else:
-                        st.session_state.messages.append({"role": "assistant", "content": "No data available to query the chatbot. Please upload a file first."})
-                except openai.error.AuthenticationError:
-                    st.session_state.messages.append({"role": "assistant", "content": "OpenAI API Key is invalid. Please check your key in Streamlit secrets."})
-                except openai.error.APIError as e:
-                    st.session_state.messages.append({"role": "assistant", "content": f"OpenAI API Error: {e}"})
-                except Exception as e:
-                    st.session_state.messages.append({"role": "assistant", "content": f"An unexpected error occurred with the chatbot: {e}"})
+                            response = openai.ChatCompletion.create(
+                                model="gpt-4", 
+                                messages=[
+                                    {"role": "system", "content": f"You are a helpful data analyst assistant specializing in lab testing datasets. Answer questions based on the provided data, which represents lab sample volume by franchisee. Here is a description of the columns: {column_description}"},
+                                    {"role": "user", "content": f"Here is a sample of the **currently uploaded** data:\n{chat_data_context}\n\nUser's question: {user_question}"}
+                                ],
+                                temperature=0.3,
+                                max_tokens=1000 
+                            )
+                            gpt_response = response.choices[0].message.content.strip()
+                            st.session_state.messages.append({"role": "assistant", "content": gpt_response})
+                        else:
+                            st.session_state.messages.append({"role": "assistant", "content": "No data available to query the chatbot. Please upload a file first."})
+                    except openai.error.AuthenticationError:
+                        st.session_state.messages.append({"role": "assistant", "content": "OpenAI API Key is invalid. Please check your key in Streamlit secrets."})
+                    except openai.error.APIError as e:
+                        st.session_state.messages.append({"role": "assistant", "content": f"OpenAI API Error: {e}"})
+                    except Exception as e:
+                        st.session_state.messages.append({"role": "assistant", "content": f"An unexpected error occurred with the chatbot: {e}"})
                 
-                # Rerun the app to display the new messages
+                # Rerun the app to display the new messages (including the assistant's response)
                 st.experimental_rerun()
-
-        # Display chat messages
-        for message in st.session_state.messages:
-            with st.sidebar.chat_message(message["role"]):
-                st.markdown(message["content"])
 
     elif not uploaded_file:
         st.sidebar.info("Please upload a file before asking questions to the chatbot.")
